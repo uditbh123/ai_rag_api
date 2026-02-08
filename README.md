@@ -176,3 +176,31 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## 🐳 Project 2: Containerization with Docker
+
+This stage of the project involved packaging the entire FastAPI + ChromaDB application into a portable Docker image. This ensures that the RAG API works identically across different environments (Windows, macOS, or Linux) without manual dependency setup.
+
+### 🏗️ Docker Architecture
+The container encapsulates the Python 3.11 environment, all library dependencies, and the pre-computed vector database. It communicates with the host machine to access the AI models running via Ollama.
+
+
+
+### 🛠️ Docker Implementation
+- **Base Image**: `python:3.11-slim` (Optimized for size and security)
+- **Dependency Management**: Integrated installation of `fastapi`, `uvicorn`, `chromadb`, and `ollama`
+- **Automation**: The `Dockerfile` automatically runs `embed.py` during the build process to ensure the database is ready upon startup.
+
+### 🚀 How to Run with Docker
+
+1. **Build the Image**
+   ```bash
+   docker build -t rag-app .
+
+2. **Run the Container**
+   ```bash
+   docker run -p 8000:8000 rag-app
+
+### 📡 Technical Challenge: Container Networking
+A key challenge during containerization was enabling the API inside the Docker container to talk to the Ollama service running on the host machine.
+
+- **The Solution**: Configured the application to use `http://host.docker.internal:11434` instead of `localhost`, allowing the container to bypass its own isolated network and reach the host's AI engine.
