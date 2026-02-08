@@ -204,3 +204,16 @@ The container encapsulates the Python 3.11 environment, all library dependencies
 A key challenge during containerization was enabling the API inside the Docker container to talk to the Ollama service running on the host machine.
 
 - **The Solution**: Configured the application to use `http://host.docker.internal:11434` instead of `localhost`, allowing the container to bypass its own isolated network and reach the host's AI engine.
+
+## 📁 Project Structure
+
+```
+ai_rag_api/
+├── app.py
+├── embed.py
+├── k8s.txt
+├── Dockerfile
+├── .dockerignore  
+├── .gitignore
+└── README.md
+```
