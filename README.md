@@ -217,3 +217,22 @@ ai_rag_api/
 ├── .gitignore
 └── README.md
 ```
+
+---
+## ☸️ Phase 3: Kubernetes Orchestration
+I successfully deployed the containerized RAG API into a **Minikube** cluster. This transition highlights the application's readiness for a production-scale environment.
+
+### Deployment Details:
+- **Orchestrator:** Kubernetes (via Minikube)
+- **Manifests:** - `deployment.yaml`: Defines pod scaling and container resource limits.
+    - `service.yaml`: Uses a **NodePort** to expose the API to the local machine.
+- **Networking:** Leveraged `minikube service` to tunnel traffic from the host to the cluster.
+
+### Commands to Deploy:
+```powershell
+# Apply configurations
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+
+# Access the API
+minikube service rag-app-service --url
