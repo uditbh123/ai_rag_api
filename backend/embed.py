@@ -76,7 +76,7 @@ def make_chunk_id(source_filename: str, chunk_text: str) -> str:
 
 # THE INGEST FUNCTION — reusable for any file
 
-def ingest_file(filepath: str, collection) -> dict:
+def ingest_file(filepath: str, collection, display_name: str = None) -> dict:
     """
     Reads a text file, chunks it, and stores it in ChromaDB.
 
@@ -88,8 +88,8 @@ def ingest_file(filepath: str, collection) -> dict:
     Reusable code = less duplication = fewer bugs.
     """
 
-    # os.path.basename turns "/some/path/k8s.txt" → "k8s.txt"
-    filename = os.path.basename(filepath)
+    # Use display_name if given (e.g. original upload name), else derive from path
+    filename = display_name if display_name else os.path.basename(filepath)
 
     print(f"Reading {filename}...")
 

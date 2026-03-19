@@ -9,7 +9,8 @@ import ollama
 import json
 import logging
 from dotenv import load_dotenv   
-import os                        
+import os         
+from ingest import router as ingest_router               
 
 # SETUP
 
@@ -41,6 +42,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(ingest_router)
+# This plugs in all the /ingest/* endpoints
+# Now app.py has: /health, /query, /query/stream, /documents, /ingest/upload, /ingest/list, /ingest/document/{name}
 
 # DATABASE CONNECTION
 
