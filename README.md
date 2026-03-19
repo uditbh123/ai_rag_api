@@ -1,238 +1,318 @@
-# AI RAG API
+# 🧠 AI RAG API
 
-A production-ready Retrieval-Augmented Generation (RAG) API built with FastAPI that enables semantic search and question-answering capabilities over custom documents.
+> A real-time, production-ready Retrieval-Augmented Generation (RAG) system — ask questions, get accurate answers from your own documents. No hallucinations. No API costs. Runs 100% locally.
 
-## 🌟 Overview
+![Python](https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111-green?style=flat-square&logo=fastapi)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-vector--db-orange?style=flat-square)
+![Ollama](https://img.shields.io/badge/Ollama-TinyLlama-purple?style=flat-square)
+![Docker](https://img.shields.io/badge/Docker-containerized-blue?style=flat-square&logo=docker)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-deployed-326CE5?style=flat-square&logo=kubernetes)
 
-This project implements a RAG (Retrieval-Augmented Generation) system that makes AI smarter by giving it access to your own custom knowledge base. Built with FastAPI, it uses local AI models (Ollama + TinyLlama) and vector databases (ChromaDB) to provide accurate, context-aware answers based on your specific documents—without expensive API costs or privacy concerns.
+---
 
-**Part 1 of the NextWork AI DevOps Series** - This is the foundational RAG API that will be containerized, automated, and monitored in future projects.
+## 📖 What is this project?
 
-## 🚀 Features
+Most AI chatbots make things up when they don't know the answer — this is called **hallucination**. RAG (Retrieval-Augmented Generation) fixes that by giving the AI access to a knowledge base *you* control. Before answering, it searches your documents for relevant context, then uses that context to generate a grounded, accurate answer.
 
-- **Local AI Models**: Uses Ollama with TinyLlama to run AI locally—no expensive API costs
-- **Vector Database**: ChromaDB stores embeddings for semantic search based on meaning, not just keywords
-- **Document Ingestion**: Convert text documents into vector embeddings for your knowledge base
-- **Intelligent Querying**: Ask questions and get accurate answers based on your specific documents
-- **FastAPI Backend**: High-performance async API with automatic Swagger UI documentation
-- **No Hallucinations**: AI responses are grounded in your actual documents, preventing made-up answers
-- **Privacy-First**: All data stays local on your machine
+This project is a full RAG backend API built from scratch:
 
-## 📋 Prerequisites
+- You upload documents (`.txt`, `.md`, `.csv`, etc.)
+- They get split into smart, overlapping chunks and stored in a vector database
+- When you ask a question, the system finds the most semantically relevant chunks
+- Those chunks are fed to a local LLM (TinyLlama via Ollama) to generate the answer
+- The answer streams back to you **token by token**, in real time — just like ChatGPT
 
-- Python 3.8+
-- [Ollama](https://ollama.ai/) installed locally
-- pip for package management
-- Basic understanding of REST APIs
+Everything runs **locally on your machine** — no OpenAI key, no cloud costs, no data leaving your computer.
 
-## 🛠️ Installation
+---
 
-1. **Install Ollama**
-   
-   Download and install Ollama from [https://ollama.ai/](https://ollama.ai/)
-   
-   Pull the TinyLlama model:
-   ```bash
-   ollama pull tinyllama
-   ```
+## 🏗️ Architecture
 
-2. **Clone the repository**
-   ```bash
-   git clone https://github.com/uditbh123/ai_rag_api.git
-   cd ai_rag_api
-   ```
-
-3. **Create a virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-4. **Install dependencies**
-   ```bash
-   pip install fastapi uvicorn chromadb ollama langchain
-   ```
-
-## 🎯 Usage
-
-### The RAG Workflow
-
-This project follows a two-step process:
-
-1. **Ingestion**: Embed your documents into ChromaDB
-2. **Query**: Ask questions and get AI-generated answers based on your documents
-
-### Step 1: Embed Documents
-
-First, create your knowledge base. For example, create a file `k8s.txt` with information about Kubernetes, then run:
-
-```bash
-python embed.py
+```
+┌─────────────────────────────────────────────────────────┐
+│                      React UI (Step 5)                   │
+│         Chat panel · Upload panel · Status bar           │
+└──────────────────────┬──────────────────────────────────┘
+                       │  HTTP + SSE streaming
+┌──────────────────────▼──────────────────────────────────┐
+│                   FastAPI Backend                        │
+│  /health  /query  /query/stream  /ingest/*  /documents   │
+└────────┬───────────────────────┬────────────────────────┘
+         │                       │
+┌────────▼────────┐    ┌─────────▼────────┐
+│    ChromaDB     │    │   Ollama (local)  │
+│  Vector store   │    │   TinyLlama LLM   │
+│  Cosine search  │    │   Streaming gen.  │
+└─────────────────┘    └──────────────────┘
 ```
 
-This converts your text into vector embeddings and stores them in ChromaDB.
+**How a query flows through the system:**
 
-### Step 2: Start the API
+1. User sends question → FastAPI `/query/stream`
+2. FastAPI embeds the question and queries ChromaDB for the top 3 most relevant chunks
+3. Those chunks are formatted into a prompt and sent to Ollama with `stream=True`
+4. Each token from Ollama is forwarded to the browser immediately via SSE
+5. User sees the answer appear word by word in real time
 
-Start the FastAPI server:
-```bash
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
-```
+---
 
-The API will be available at `http://localhost:8000`
+## ✨ Features
 
-### Step 3: Query Your Knowledge Base
+| Feature | Details |
+|---|---|
+| **Real-time streaming** | Tokens stream via Server-Sent Events (SSE) — no waiting for the full response |
+| **Smart chunking** | Documents split into 500-char overlapping chunks so no context is lost at boundaries |
+| **Deduplication** | Content-hashed chunk IDs mean re-ingesting a file never creates duplicates |
+| **File upload API** | `POST /ingest/upload` accepts any text file and chunks it automatically |
+| **Document management** | List and delete indexed documents via API |
+| **Health check** | `/health` exposes Ollama status, available models, and total chunks indexed |
+| **Privacy-first** | 100% local — no data sent to external APIs |
+| **Zero hallucination** | LLM is instructed to only answer from retrieved context |
+| **Docker ready** | Single `docker build` packages everything |
+| **Kubernetes deployed** | Manifests included for Minikube/production cluster deployment |
 
-**Using curl:**
-```bash
-curl -X POST "http://localhost:8000/query" \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is Kubernetes?"}'
-```
-
-**Using Swagger UI:**
-
-Visit `http://localhost:8000/docs` for an interactive interface where you can test queries directly in your browser.
-
-### How It Works
-
-1. **User asks a question** via the `/query` endpoint
-2. **ChromaDB retrieves** the most relevant text snippets from your documents
-3. **Context is sent** to TinyLlama along with the question
-4. **AI generates** an accurate answer based on your specific knowledge base
-
-### Example: Before vs After RAG
-
-**Without RAG (Hallucination):**
-- Question: "What is Kubernetes?"
-- Answer: "A type of dessert" ❌
-
-**With RAG (Accurate):**
-- Question: "What is Kubernetes?"  
-- Answer: "Kubernetes is an open-source container orchestration platform..." ✅
+---
 
 ## 📁 Project Structure
 
 ```
-ai_rag_api/
-├── app.py          # Main FastAPI application with /query endpoint
-├── embed.py        # Script to embed documents into ChromaDB
-├── k8s.txt         # Example knowledge base document (Kubernetes info)
-├── .gitignore      # Git ignore rules
-└── README.md       # Project documentation
-```
-
-## 🔮 Future Roadmap
-
-This is **Project 1** in a 4-part series:
-
-- ✅ **Project 1**: Build the RAG API (Current)
-- ⏳ **Project 2**: Containerize with Docker
-- ⏳ **Project 3**: Automate with GitHub Actions  
-- ⏳ **Project 4**: Monitor with Grafana dashboards
-
-## 🧪 Testing
-
-Test your API to ensure it's working correctly:
-
-1. **Health Check**: Visit `http://localhost:8000` in your browser
-2. **Interactive Testing**: Use Swagger UI at `http://localhost:8000/docs`
-3. **Command Line**: Use curl commands to test the `/query` endpoint
-
-## 🛠️ Tech Stack
-
-- **FastAPI**: Modern web framework for building APIs
-- **Ollama + TinyLlama**: Local AI model for generation
-- **ChromaDB**: Vector database for storing embeddings
-- **LangChain**: Framework for building LLM applications
-- **Python**: Programming language
-
-## 📊 API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Health check and API info |
-| `/query` | POST | Query the RAG system with a question |
-| `/docs` | GET | Interactive Swagger UI documentation |
-
-## 💡 Key Concepts
-
-**RAG (Retrieval-Augmented Generation)**  
-Instead of the AI making things up, RAG grounds responses in your actual documents. It retrieves relevant information first, then generates an answer.
-
-**Vector Embeddings**  
-Your text is converted into numerical representations that capture meaning, allowing semantic search (searching by concept, not just keywords).
-
-**Local AI**  
-Using Ollama and TinyLlama means no API costs, better privacy, and full control over your AI stack.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 🐳 Project 2: Containerization with Docker
-
-This stage of the project involved packaging the entire FastAPI + ChromaDB application into a portable Docker image. This ensures that the RAG API works identically across different environments (Windows, macOS, or Linux) without manual dependency setup.
-
-### 🏗️ Docker Architecture
-The container encapsulates the Python 3.11 environment, all library dependencies, and the pre-computed vector database. It communicates with the host machine to access the AI models running via Ollama.
-
-
-
-### 🛠️ Docker Implementation
-- **Base Image**: `python:3.11-slim` (Optimized for size and security)
-- **Dependency Management**: Integrated installation of `fastapi`, `uvicorn`, `chromadb`, and `ollama`
-- **Automation**: The `Dockerfile` automatically runs `embed.py` during the build process to ensure the database is ready upon startup.
-
-### 🚀 How to Run with Docker
-
-1. **Build the Image**
-   ```bash
-   docker build -t rag-app .
-
-2. **Run the Container**
-   ```bash
-   docker run -p 8000:8000 rag-app
-
-### 📡 Technical Challenge: Container Networking
-A key challenge during containerization was enabling the API inside the Docker container to talk to the Ollama service running on the host machine.
-
-- **The Solution**: Configured the application to use `http://host.docker.internal:11434` instead of `localhost`, allowing the container to bypass its own isolated network and reach the host's AI engine.
-
-## 📁 Project Structure
-
-```
-ai_rag_api/
-├── app.py
-├── embed.py
-├── k8s.txt
-├── Dockerfile
-├── .dockerignore  
-├── .gitignore
+AI_RAG_API/
+│
+├── backend/
+│   ├── app.py          # FastAPI app — all endpoints including SSE streaming
+│   ├── embed.py        # Chunking logic + ChromaDB ingestion (reusable module)
+│   ├── ingest.py       # Upload/delete/list endpoints (uses embed.py)
+│   └── db/             # ChromaDB persistent storage (auto-created)
+│
+├── frontend/           # React UI (in progress)
+│   └── src/
+│       ├── App.jsx
+│       └── components/
+│
+├── .env                # Config: model name, chunk size, DB path
+├── requirements.txt    # All Python dependencies pinned
+├── Dockerfile          # Container definition
+├── deployment.yaml     # Kubernetes deployment manifest
+├── service.yaml        # Kubernetes NodePort service
 └── README.md
 ```
 
 ---
-## ☸️ Phase 3: Kubernetes Orchestration
-I successfully deployed the containerized RAG API into a **Minikube** cluster. This transition highlights the application's readiness for a production-scale environment.
 
-### Deployment Details:
-- **Orchestrator:** Kubernetes (via Minikube)
-- **Manifests:** - `deployment.yaml`: Defines pod scaling and container resource limits.
-    - `service.yaml`: Uses a **NodePort** to expose the API to the local machine.
-- **Networking:** Leveraged `minikube service` to tunnel traffic from the host to the cluster.
+## 🚀 Getting Started
 
-### Commands to Deploy:
-```powershell
-# Apply configurations
+### Prerequisites
+
+- Python 3.11+
+- [Ollama](https://ollama.ai/) installed and running
+- pip
+
+### 1. Clone and set up
+
+```bash
+git clone https://github.com/uditbh123/ai_rag_api.git
+cd ai_rag_api
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate       # macOS/Linux
+venv\Scripts\activate          # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 2. Pull the AI model
+
+```bash
+ollama pull tinyllama
+```
+
+### 3. Configure environment
+
+Create a `.env` file in the root:
+
+```env
+OLLAMA_MODEL=tinyllama
+CHROMA_PATH=./db
+N_RESULTS=3
+CHUNK_SIZE=500
+CHUNK_OVERLAP=50
+```
+
+### 4. Ingest your documents
+
+```bash
+cd backend
+python embed.py
+```
+
+This reads `k8s.txt`, splits it into overlapping chunks, and stores them in ChromaDB. Add your own `.txt` files to the `files_to_ingest` list in `embed.py`.
+
+### 5. Start the API
+
+```bash
+uvicorn app:app --reload --port 8000
+```
+
+Visit `http://localhost:8000/docs` for the interactive Swagger UI — you can test every endpoint directly in your browser.
+
+---
+
+## 📡 API Reference
+
+### Core endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Check if Ollama is running, list available models and chunk count |
+| `POST` | `/query` | Ask a question, get the full answer at once |
+| `POST` | `/query/stream` | Ask a question, get the answer streamed token by token (SSE) |
+| `GET` | `/documents` | List all indexed chunks |
+
+### Document management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/ingest/upload` | Upload a file (`.txt`, `.md`, `.csv`, `.json`, `.py`) — max 10MB |
+| `GET` | `/ingest/list` | List all source documents with chunk counts and previews |
+| `DELETE` | `/ingest/document/{name}` | Remove all chunks belonging to a document |
+
+### Example: streaming query
+
+```bash
+curl -X POST http://localhost:8000/query/stream \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is Kubernetes?", "n_results": 3}'
+```
+
+Each SSE event looks like:
+```
+data: {"sources": ["chunk1...", "chunk2..."], "done": false}
+data: {"token": "Kubernetes", "done": false}
+data: {"token": " is", "done": false}
+data: {"token": " a container", "done": false}
+...
+data: {"token": ".", "done": true}
+```
+
+### Example: upload a document
+
+```bash
+curl -X POST http://localhost:8000/ingest/upload \
+  -F "file=@my_document.txt"
+```
+
+Response:
+```json
+{
+  "message": "Successfully ingested 'my_document.txt'",
+  "chunks_stored": 12,
+  "filename": "my_document.txt",
+  "file_size_kb": 5.3
+}
+```
+
+---
+
+## 🐳 Docker
+
+The entire application is containerized. Ollama runs on the host machine; the container connects to it via `host.docker.internal`.
+
+```bash
+# Build
+docker build -t rag-app .
+
+# Run
+docker run -p 8000:8000 rag-app
+```
+
+The Dockerfile runs `embed.py` at build time so the knowledge base is ready the moment the container starts.
+
+---
+
+## ☸️ Kubernetes
+
+Deployment manifests are included for running in a Minikube cluster.
+
+```bash
+# Apply manifests
 kubectl apply -f deployment.yaml
 kubectl apply -f service.yaml
 
-# Access the API
+# Get the service URL
 minikube service rag-app-service --url
+```
+
+The `deployment.yaml` defines pod scaling and resource limits. The `service.yaml` exposes the API via a NodePort so it's reachable from your local machine.
+
+---
+
+## 🧠 Key Concepts Explained
+
+**Why chunking matters**
+
+If you store a 50-page document as one giant blob, the vector search retrieves the whole document for every query — the LLM drowns in irrelevant context. By splitting into 500-character chunks with 50-character overlap, the search returns only the 2-3 paragraphs that actually answer the question.
+
+**Why overlap matters**
+
+When you split at character 500, a sentence might be cut in half. The 50-character overlap means each chunk shares a small tail with the next one — so no context is ever lost at a boundary.
+
+**Why cosine similarity**
+
+ChromaDB is configured to use cosine similarity instead of euclidean distance. Two sentences can mean the same thing using completely different words — cosine similarity measures the angle between their meaning vectors (direction), not the word-for-word distance. This catches semantic similarity far better.
+
+**Why SSE instead of WebSockets**
+
+WebSockets are bidirectional — both sides can send and receive freely. SSE is one-directional (server pushes to client). For streaming an LLM response, we only need the server to push tokens — SSE is simpler, works over regular HTTP/1.1, and needs no special infrastructure.
+
+---
+
+## 🗺️ Roadmap
+
+This is **Project 1** of a 4-part DevOps series:
+
+- ✅ **Project 1** — Build the RAG API with streaming, chunking, and upload endpoints
+- ✅ **Project 2** — Containerize with Docker
+- ✅ **Project 3** — Deploy on Kubernetes (Minikube)
+- 🔄 **Project 4** — React UI + real-time streaming frontend
+- ⏳ **Project 5** — CI/CD with GitHub Actions
+- ⏳ **Project 6** — Monitoring with Grafana dashboards
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology | Why |
+|---|---|---|
+| API framework | FastAPI | Async, fast, auto-generates Swagger docs |
+| LLM runtime | Ollama + TinyLlama | Local inference, no API costs |
+| Vector database | ChromaDB | Persistent, cosine similarity, easy to use |
+| Streaming | Server-Sent Events (SSE) | Simple, HTTP-native, no WebSocket overhead |
+| Config | python-dotenv | Keeps secrets and settings out of code |
+| Containerization | Docker | Reproducible environments |
+| Orchestration | Kubernetes | Production-grade scaling and deployment |
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome! For major changes, please open an issue first.
+
+```bash
+git checkout -b feature/your-feature
+git commit -m "Add your feature"
+git push origin feature/your-feature
+# Open a Pull Request
+```
+
+---
+
+## 📄 License
+
+MIT — free to use, modify, and distribute.
+
+---
+
+<p align="center">Built with curiosity · Runs locally · No cloud required</p>
