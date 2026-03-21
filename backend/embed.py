@@ -12,7 +12,8 @@ import hashlib
 
 load_dotenv()
 
-CHROMA_PATH  = os.getenv("CHROMA_PATH",  "./db")
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+CHROMA_PATH = os.getenv("CHROMA_PATH", os.path.join(BASE_DIR, "db"))
 CHUNK_SIZE   = int(os.getenv("CHUNK_SIZE",   "500"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 

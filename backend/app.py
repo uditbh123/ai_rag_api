@@ -18,7 +18,8 @@ load_dotenv()  # reads the .env file first thing
 
 # all config comes from .env now
 MODEL_NAME   = os.getenv("OLLAMA_MODEL",  "tinyllama")
-CHROMA_PATH  = os.getenv("CHROMA_PATH",   "./db")
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+CHROMA_PATH = os.getenv("CHROMA_PATH", os.path.join(BASE_DIR, "db"))
 N_RESULTS    = int(os.getenv("N_RESULTS", "3"))
 
 logging.basicConfig(
@@ -91,7 +92,10 @@ Answer:"""
 def health_check():
     try:
         models = ollama.list()
-        available_models = [m["name"] for m in models.get("models", [])]
+        available_models = [
+            m.get("model") or m.get("name", "unknown")
+            for m in models.get("models", [])
+        ]
         return {
             "status": "ok",
             "ollama": "connected",

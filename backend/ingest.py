@@ -23,12 +23,18 @@ from embed import ingest_file
 # This is WHY we added the if __name__ == "__main__" guard —
 # so we can import just the function without running the whole script
 
+import logging
+logger = logging.getLogger(__name__)
+
 # SETUP
 
 
 load_dotenv()
 
-CHROMA_PATH = os.getenv("CHROMA_PATH", "./db")
+# Build an absolute path relative to THIS file's location
+# So it always points to backend/db/ regardless of where uvicorn was launched from
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+CHROMA_PATH = os.getenv("CHROMA_PATH", os.path.join(BASE_DIR, "db"))
 
 # Supported file types — we only handle plain text for now
 # In the future we will add PDF, DOCX etc.
@@ -184,32 +190,25 @@ def delete_document(doc_source: str):
 
 @router.get("/list")
 def list_documents():
-    """
-    Returns a clean list of unique source documents (not individual chunks).
-
-    The raw ChromaDB .get() returns one entry per chunk —
-    so a 10-page PDF might return 40 entries all from the same file.
-    We deduplicate here so the UI shows one row per file, not per chunk.
-    """
     try:
         results = collection.get()
 
         if not results["ids"]:
             return {"documents": [], "total_chunks": 0}
 
-        # Group chunks by their source file
-        # seen_sources is a dict: { "k8s.txt": { chunks: 3, index: 0 } }
         seen_sources = {}
 
-        for i, metadata in enumerate(results["metadatas"] or []):
-            source = metadata.get("source", "unknown")
+        for i in range(len(results["ids"])):
+            # Safely get metadata — default to empty dict if None
+            metadata = (results["metadatas"] or [{}] * len(results["ids"]))[i]
+            source   = metadata.get("source", "unknown") if metadata else "unknown"
+            doc_text = results["documents"][i] if results["documents"] else ""
 
             if source not in seen_sources:
                 seen_sources[source] = {
-                    "source":       source,
-                    "chunk_count":  0,
-                    "preview":      results["documents"][i][:120] + "..."
-                    # show the first 120 chars of the first chunk as a preview
+                    "source":      source,
+                    "chunk_count": 0,
+                    "preview":     doc_text[:120] + "..." if len(doc_text) > 120 else doc_text
                 }
 
             seen_sources[source]["chunk_count"] += 1
@@ -220,4 +219,5 @@ def list_documents():
         }
 
     except Exception as e:
+        logger.error(f"Failed to list documents: {e}")
         raise HTTPException(status_code=500, detail=str(e))
