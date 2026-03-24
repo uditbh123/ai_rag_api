@@ -38,7 +38,7 @@ CHROMA_PATH = os.getenv("CHROMA_PATH", os.path.join(BASE_DIR, "db"))
 
 # Supported file types — we only handle plain text for now
 # In the future we will add PDF, DOCX etc.
-ALLOWED_EXTENSIONS = {".txt", ".md", ".py", ".json", ".csv"}
+ALLOWED_EXTENSIONS = {".txt", ".md", ".py", ".json", ".csv", ".pdf"}
 
 # APIRouter lets us define endpoints here and register them in app.py
 # prefix="/ingest" means all routes here start with /ingest

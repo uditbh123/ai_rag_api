@@ -102,7 +102,7 @@ export default function Sidebar({ documents, onUpload, onDelete }) {
           <p className="drop-text">
             {isDragging ? 'Drop to upload' : 'Click or drag a file here'}
           </p>
-          <p className="drop-hint">.txt · .md · .csv · .json · .py · max 10MB</p>
+          <p className="drop-hint">.txt · .md · .csv · .json · .py · .pdf · max 10MB</p>
         </div>
 
         {/* Upload status feedback */}
