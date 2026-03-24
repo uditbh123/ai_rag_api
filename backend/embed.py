@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 # hashlib lets us create a unique fingerprint (hash) for each chunk of text
 # We use this to avoid storing the same chunk twice if we run the script again
 import hashlib
+import fitz
 
 # CONFIG FROM .env
 
@@ -16,6 +17,17 @@ BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 CHROMA_PATH = os.getenv("CHROMA_PATH", os.path.join(BASE_DIR, "db"))
 CHUNK_SIZE   = int(os.getenv("CHUNK_SIZE",   "500"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
+
+def extract_text_from_pdf(filepath: str) -> str:
+    text_parts = []
+    with fitz.open(filepath) as pdf:
+        total_pages = len(pdf)
+        print(f"  PDF has {total_pages} pages")
+        for page_num, page in enumerate(pdf):
+            page_text = page.get_text("text").strip()
+            if page_text:
+                text_parts.append(f"[Page {page_num + 1}]\n{page_text}")
+    return "\n\n".join(text_parts)
 
 # THE CHUNKING FUNCTION — heart of this file
 
@@ -95,12 +107,13 @@ def ingest_file(filepath: str, collection, display_name: str = None) -> dict:
     print(f"Reading {filename}...")
 
     # Read the full file content
-    with open(filepath, "r", encoding="utf-8") as f:
-        text = f.read()
-
-    if not text.strip():
-        print(f"WARNING: {filename} is empty, skipping.")
-        return {"filename": filename, "chunks": 0, "status": "skipped"}
+    _, ext = os.path.splitext(filepath)
+    if ext.lower() == ".pdf":
+        print(f"  Detected PDF — extracting text with PyMuPDF...")
+        text = extract_text_from_pdf(filepath)
+    else:
+        with open(filepath, "r", encoding="utf-8") as f:
+            text = f.read()
 
     print(f"File has {len(text)} characters")
 
